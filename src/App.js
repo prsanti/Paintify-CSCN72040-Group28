@@ -1,23 +1,21 @@
-import logo from './logo.svg';
+import React from "react";
 import './App.css';
+// import Drawable from './components/Drawable';
+// import { Stage, Layer, RegularPolygon, Text } from 'konva';
+import Canvas from "./components/Canvas";
 
 function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
       </header>
+      <body>
+        <div style={{ textAlign: "center", padding: "20px" }}>
+          <h1>Paintify</h1>
+          <Canvas />
+        </div>
+        
+      </body>
     </div>
   );
 }
