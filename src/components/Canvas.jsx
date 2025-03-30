@@ -20,12 +20,18 @@ import {
   Square,
 } from "react-bootstrap-icons";
 
+// memento design pattern import
+import Caretaker from "../memento/caretaker";
+import Originator from "../memento/originator";
+
+// css
 import "./Canvas.scss";
 
 // ----- ENUMS & CONSTANTS -----
 const WIDTH = 1000;
 const HEIGHT = 500;
 
+// actions
 const DrawAction = {
   Select: "select",
   Rectangle: "rectangle",
@@ -34,6 +40,7 @@ const DrawAction = {
   Arrow: "arrow",
 };
 
+// different options for canvas
 const PAINT_OPTIONS = [
   {
     id: DrawAction.Select,
@@ -46,7 +53,7 @@ const PAINT_OPTIONS = [
   { id: DrawAction.Scribble, label: "Scribble", icon: <Pencil /> },
 ];
 
-// ----- UTILS -----
+// download image function
 const downloadURI = (uri, name) => {
   const link = document.createElement("a");
   link.download = name;
@@ -56,7 +63,7 @@ const downloadURI = (uri, name) => {
   document.body.removeChild(link);
 };
 
-// ----- MAIN COMPONENT -----
+// main component
 const Canvas = () => {
   const currentShapeRef = useRef();
   const isPaintRef = useRef(false);
@@ -65,6 +72,7 @@ const Canvas = () => {
   const diagramRef = useRef(null);
   const fileRef = useRef(null);
 
+  // states for shapes and tools
   const [scribbles, setScribbles] = useState([]);
   const [rectangles, setRectangles] = useState([]);
   const [circles, setCircles] = useState([]);
@@ -75,6 +83,7 @@ const Canvas = () => {
 
   const isDraggable = drawAction === DrawAction.Select;
 
+  // check if deselect is selected
   const checkDeselect = useCallback((e) => {
     const clickedOnEmpty = e.target === stageRef?.current?.find("#bg")?.[0];
     if (clickedOnEmpty) {
@@ -82,6 +91,7 @@ const Canvas = () => {
     }
   }, []);
 
+  // check if mouse is pressed on canvas
   const onStageMouseDown = useCallback((e) => {
     checkDeselect(e);
     if (drawAction === DrawAction.Select) return;
@@ -94,6 +104,7 @@ const Canvas = () => {
     const id = uuidv4();
     currentShapeRef.current = id;
 
+    // perform type of tool depending on what is selected
     switch (drawAction) {
       case DrawAction.Scribble:
         setScribbles((prev) => [...prev, { id, points: [x, y], color }]);
@@ -113,15 +124,18 @@ const Canvas = () => {
     }
   }, [checkDeselect, drawAction, color]);
 
+  // for mouse movement
   const onStageMouseMove = useCallback(() => {
     if (drawAction === DrawAction.Select || !isPaintRef.current) return;
 
+    // get location, id and position of mouse on canvas
     const stage = stageRef?.current;
     const id = currentShapeRef.current;
     const pos = stage?.getPointerPosition();
     const x = pos?.x || 0;
     const y = pos?.y || 0;
 
+    // type of action
     switch (drawAction) {
       case DrawAction.Scribble:
         setScribbles((prev) =>
@@ -161,10 +175,12 @@ const Canvas = () => {
     }
   }, [drawAction]);
 
+  // mouse up/release
   const onStageMouseUp = useCallback(() => {
     isPaintRef.current = false;
   }, []);
 
+  // click on shape
   const onShapeClick = useCallback(
     (e) => {
       if (drawAction !== DrawAction.Select) return;
@@ -237,7 +253,6 @@ const Canvas = () => {
         <div style={{ marginTop: 8 }}>
           <SketchPicker color={color} onChangeComplete={(c) => setColor(c.hex)} />
         </div>
-        <button onClick={() => alert('Hello!')}>Test Click</button>
       </div>
   
       {/* Canvas */}
