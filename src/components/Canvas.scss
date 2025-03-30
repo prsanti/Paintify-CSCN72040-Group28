@@ -25,3 +25,33 @@
 //     }
 //   }
 // }
+$width: 900px;
+$height: 500px;
+
+// canvas {
+//   // position: absolute;
+//   top: 0;
+//   left: 0;
+//   // z-index: 9999;
+// }
+
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #333;
+  z-index: 999;
+}
+
+
+.stage {
+  width: $width;
+  height: $height;
+  // border-style: solid;
+  border: 1px solid black;
+  margin-top: 16;
+  z-index: 1;
+  position: 'relative';
+}
