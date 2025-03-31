@@ -13,11 +13,14 @@ export default class Caretaker {
   }
 
   undo() {
+    // history stack is empty
     if (this.history.length === 0) return;
 
     // remove the top of the stack
     const memento = this.history.pop();
+    // restore memento
     this.originator.restore(memento);
+    // return memento state
     return this.originator.getState();
   }
 }
