@@ -8,6 +8,7 @@ export default class Caretaker {
   }
 
   backup() {
+    // add memento to stack
     this.history.push(this.originator.save());
   }
 

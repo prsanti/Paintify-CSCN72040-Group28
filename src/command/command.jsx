@@ -1,5 +1,6 @@
+// interface
 export default class Command {
-  // empty
+  // empty for interface
   execute() {
     
   }

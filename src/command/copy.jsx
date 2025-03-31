@@ -17,14 +17,17 @@ export default class Copy extends Command {
     // generate a new ID
     copiedShape.id = crypto.randomUUID();
 
-    // handle position shifting
+    // Normalize color for consistent rendering
+    if (!copiedShape.color && copiedShape.stroke) {
+      copiedShape.color = copiedShape.stroke;
+    }
+
+    // Shift shape position
     if (copiedShape.type === "Line") {
-      // Shift every pair of points by 20 pixels
-      copiedShape.points = copiedShape.points.map((val, i) =>
-        i % 2 === 0 ? val + 20 : val + 20
-      );
+      // add 20 to x and y for line array points
+      copiedShape.points = copiedShape.points.map((val) => val + 20);
     } else {
-      // For shapes with x/y position
+      // add 20 to x and y for shapes
       copiedShape.x = (copiedShape.x || 0) + 20;
       copiedShape.y = (copiedShape.y || 0) + 20;
     }

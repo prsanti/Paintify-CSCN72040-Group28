@@ -114,6 +114,7 @@ const Canvas = () => {
     setImage(state.image);
   };
 
+  // press undo button
   const handleUndo = () => {
     const prevState = caretaker.current.undo();
     if (prevState !== undefined && prevState !== null) {
@@ -123,6 +124,7 @@ const Canvas = () => {
   };
 
   // redo for memento
+  // press redo button
   const handleRedo = () => {
     if (redoStack.current.length > 0) {
       const nextState = redoStack.current.pop();
@@ -133,6 +135,7 @@ const Canvas = () => {
   };
 
   // command design pattern
+  // press copy button
   const handleCopy = () => {
     console.log("handle copy");
     const command = new Copy(selectedShape, setClipboard);
@@ -142,110 +145,38 @@ const Canvas = () => {
     command.execute();
   };
 
-  // const handlePaste = () => {
-  //   console.log("handle paste");
-  //   const command = new Paste(clipboard, (shape) => {
-  //     switch (shape.type) {
-  //       case "Rect":
-  //         setRectangles((prev) => [...prev, shape]);
-  //         break;
-  //       case "Circle":
-  //         setCircles((prev) => [...prev, shape]);
-  //         break;
-  //       case "Line":
-  //         setScribbles((prev) => [...prev, shape]);
-  //         break;
-  //       case "Arrow":
-  //         setArrows((prev) => [...prev, shape]);
-  //         break;
-  //       default:
-  //         console.warn("Unknown shape type during paste:", shape);
-  //     }
-  //   });
-  //   console.log("Pasting shape:", clipboard);
-
-  //   command.execute();
-  // };
-
-  // const handlePaste = () => {
-  //   let pastedShape = null;
-  
-  //   const command = new Paste(clipboard, (shape) => {
-  //     pastedShape = shape; // store the pasted shape temporarily
-  //     switch (shape.type) {
-  //       case "Rect":
-  //         setRectangles((prev) => [...prev, shape]);
-  //         break;
-  //       case "Circle":
-  //         setCircles((prev) => [...prev, shape]);
-  //         break;
-  //       case "Line":
-  //         setScribbles((prev) => [...prev, shape]);
-  //         break;
-  //       case "Arrow":
-  //         setArrows((prev) => [...prev, shape]);
-  //         break;
-  //       default:
-  //         console.warn("Unknown shape type during paste:", shape);
-  //     }
-  //   });
-  
-  //   console.log("Pasting shape:", clipboard);
-
-  //   command.execute();
-  
-  //   if (pastedShape) {
-  //     setTimeout(() => {
-  //       originator.current.setState(getCanvasState());
-  //       caretaker.current.backup();
-  //       redoStack.current = [];
-  //     }, 0); // delay backup slightly to allow React state to update
-  //   }
-  // };
-  
+  // press paste button
   const handlePaste = () => {
-  const command = new Paste(clipboard, (shape) => {
-    console.log("Attempting to paste shape:", shape);
+    const command = new Paste(clipboard, (shape) => {
+      // Backup current state before pasting for memento
+      originator.current.setState(getCanvasState());
+      caretaker.current.backup();
+      redoStack.current = [];
 
-    switch (shape.type) {
-      case "Rect":
-        setRectangles((prev) => {
-          console.log("New rectangles:", [...prev, shape]);
-          return [...prev, shape];
-        });
-        break;
-      case "Circle":
-        setCircles((prev) => {
-          console.log("New circles:", [...prev, shape]);
-          return [...prev, shape];
-        });
-        break;
-      case "Line":
-        setScribbles((prev) => {
-          console.log("New scribbles:", [...prev, shape]);
-          return [...prev, shape];
-        });
-        break;
-      case "Arrow":
-        setArrows((prev) => {
-          console.log("New arrows:", [...prev, shape]);
-          return [...prev, shape];
-        });
-        break;
-      default:
-        console.warn("Unknown shape type during paste:", shape);
-    }
-  });
+      // check type of shape for copied shape
+      // push memento state to stack for shape object
+      switch (shape.type) {
+        case "Rect":
+          setRectangles((prev) => [...prev, shape]);
+          break;
+        case "Circle":
+          setCircles((prev) => [...prev, shape]);
+          break;
+        case "Line":
+          setScribbles((prev) => [...prev, shape]);
+          break;
+        case "Arrow":
+          setArrows((prev) => [...prev, shape]);
+          break;
+        default:
+          console.warn("Unknown shape type during paste:", shape);
+      }
+    });
 
-  command.execute();
+    command.execute();
+  };
 
-  // Log the canvas state *after* a short delay
-  setTimeout(() => {
-    console.log("Canvas state after paste:", getCanvasState());
-  }, 100);
-};
-
-
+  // deselect shape
   const checkDeselect = useCallback((e) => {
     const clickedOnEmpty = e.target === stageRef?.current?.find("#bg")?.[0];
     if (clickedOnEmpty) {
@@ -253,6 +184,7 @@ const Canvas = () => {
     }
   }, []);
 
+  // for mouse down
   const onStageMouseDown = useCallback((e) => {
     checkDeselect(e);
     if (drawAction === DrawAction.Select) return;
@@ -268,6 +200,7 @@ const Canvas = () => {
     const id = uuidv4();
     currentShapeRef.current = id;
 
+    // get position of mouse for drawing shapes
     switch (drawAction) {
       case DrawAction.Scribble:
         setScribbles((prev) => [...prev, { id, points: [x, y], color }]);
@@ -287,7 +220,9 @@ const Canvas = () => {
     }
   }, [checkDeselect, drawAction, color]);
 
+  // on mouse move
   const onStageMouseMove = useCallback(() => {
+    // update coordinates for shape
     if (drawAction === DrawAction.Select || !isPaintRef.current) return;
     const stage = stageRef?.current;
     const id = currentShapeRef.current;
@@ -314,17 +249,21 @@ const Canvas = () => {
     }
   }, [drawAction]);
 
+  // on mouse move up
   const onStageMouseUp = useCallback(() => {
     isPaintRef.current = false;
   }, []);
 
+  // on shape click
   const onShapeClick = useCallback((e) => {
     if (drawAction !== DrawAction.Select) return;
     transformerRef?.current?.node(e.currentTarget);
     const shapeProps = e.target.attrs;
+    // get shape information
     setSelectedShape({ ...shapeProps, type: e.target.name() });
   }, [drawAction]);  
 
+  // import image
   const onImportImageSelect = useCallback((e) => {
     if (e.target.files?.[0]) {
       const imageURL = URL.createObjectURL(e.target.files[0]);
@@ -336,6 +275,8 @@ const Canvas = () => {
   }, []);
 
   const onImportImageClick = () => fileRef?.current?.click();
+
+  // export image
   const onExportClick = () => downloadURI(stageRef?.current?.toDataURL({ pixelRatio: 3 }), "image.png");
   const onClear = () => {
     setScribbles([]);
@@ -345,6 +286,7 @@ const Canvas = () => {
     setImage(undefined);
   };
 
+  // on load
   useEffect(() => {
     originator.current.setState(getCanvasState());
     caretaker.current.backup();
