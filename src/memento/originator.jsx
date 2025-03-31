@@ -1,6 +1,6 @@
 import Memento from './memento';
 
-export default class CanvasOriginator {
+export default class Originator {
   constructor() {
     this.state = null;
   }
