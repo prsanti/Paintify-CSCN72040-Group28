@@ -12,15 +12,22 @@ export default class Copy extends Command {
   execute() {
     if (!this.selectedShape) return;
 
-     // set copied shape
-    const copiedShape = {
-      ...this.selectedShape,
-      // create new id for copied shape
-      id: crypto.randomUUID(),
-      // move copied shape by (20,20)
-      x: this.selectedShape.x + 20,
-      y: this.selectedShape.y + 20,
-    };
+    let copiedShape = { ...this.selectedShape };
+
+    // generate a new ID
+    copiedShape.id = crypto.randomUUID();
+
+    // handle position shifting
+    if (copiedShape.type === "Line") {
+      // Shift every pair of points by 20 pixels
+      copiedShape.points = copiedShape.points.map((val, i) =>
+        i % 2 === 0 ? val + 20 : val + 20
+      );
+    } else {
+      // For shapes with x/y position
+      copiedShape.x = (copiedShape.x || 0) + 20;
+      copiedShape.y = (copiedShape.y || 0) + 20;
+    }
 
     // set state of clip board to copied shape
     this.setClipboard(copiedShape);

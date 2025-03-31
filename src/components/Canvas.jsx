@@ -142,30 +142,109 @@ const Canvas = () => {
     command.execute();
   };
 
-  const handlePaste = () => {
-    console.log("handle paste");
-    const command = new Paste(clipboard, (shape) => {
-      switch (shape.type) {
-        case "Rect":
-          setRectangles((prev) => [...prev, shape]);
-          break;
-        case "Circle":
-          setCircles((prev) => [...prev, shape]);
-          break;
-        case "Line":
-          setScribbles((prev) => [...prev, shape]);
-          break;
-        case "Arrow":
-          setArrows((prev) => [...prev, shape]);
-          break;
-        default:
-          console.warn("Unknown shape type during paste:", shape);
-      }
-    });
-    console.log("Pasting shape:", clipboard);
+  // const handlePaste = () => {
+  //   console.log("handle paste");
+  //   const command = new Paste(clipboard, (shape) => {
+  //     switch (shape.type) {
+  //       case "Rect":
+  //         setRectangles((prev) => [...prev, shape]);
+  //         break;
+  //       case "Circle":
+  //         setCircles((prev) => [...prev, shape]);
+  //         break;
+  //       case "Line":
+  //         setScribbles((prev) => [...prev, shape]);
+  //         break;
+  //       case "Arrow":
+  //         setArrows((prev) => [...prev, shape]);
+  //         break;
+  //       default:
+  //         console.warn("Unknown shape type during paste:", shape);
+  //     }
+  //   });
+  //   console.log("Pasting shape:", clipboard);
 
-    command.execute();
-  };
+  //   command.execute();
+  // };
+
+  // const handlePaste = () => {
+  //   let pastedShape = null;
+  
+  //   const command = new Paste(clipboard, (shape) => {
+  //     pastedShape = shape; // store the pasted shape temporarily
+  //     switch (shape.type) {
+  //       case "Rect":
+  //         setRectangles((prev) => [...prev, shape]);
+  //         break;
+  //       case "Circle":
+  //         setCircles((prev) => [...prev, shape]);
+  //         break;
+  //       case "Line":
+  //         setScribbles((prev) => [...prev, shape]);
+  //         break;
+  //       case "Arrow":
+  //         setArrows((prev) => [...prev, shape]);
+  //         break;
+  //       default:
+  //         console.warn("Unknown shape type during paste:", shape);
+  //     }
+  //   });
+  
+  //   console.log("Pasting shape:", clipboard);
+
+  //   command.execute();
+  
+  //   if (pastedShape) {
+  //     setTimeout(() => {
+  //       originator.current.setState(getCanvasState());
+  //       caretaker.current.backup();
+  //       redoStack.current = [];
+  //     }, 0); // delay backup slightly to allow React state to update
+  //   }
+  // };
+  
+  const handlePaste = () => {
+  const command = new Paste(clipboard, (shape) => {
+    console.log("Attempting to paste shape:", shape);
+
+    switch (shape.type) {
+      case "Rect":
+        setRectangles((prev) => {
+          console.log("New rectangles:", [...prev, shape]);
+          return [...prev, shape];
+        });
+        break;
+      case "Circle":
+        setCircles((prev) => {
+          console.log("New circles:", [...prev, shape]);
+          return [...prev, shape];
+        });
+        break;
+      case "Line":
+        setScribbles((prev) => {
+          console.log("New scribbles:", [...prev, shape]);
+          return [...prev, shape];
+        });
+        break;
+      case "Arrow":
+        setArrows((prev) => {
+          console.log("New arrows:", [...prev, shape]);
+          return [...prev, shape];
+        });
+        break;
+      default:
+        console.warn("Unknown shape type during paste:", shape);
+    }
+  });
+
+  command.execute();
+
+  // Log the canvas state *after* a short delay
+  setTimeout(() => {
+    console.log("Canvas state after paste:", getCanvasState());
+  }, 100);
+};
+
 
   const checkDeselect = useCallback((e) => {
     const clickedOnEmpty = e.target === stageRef?.current?.find("#bg")?.[0];
