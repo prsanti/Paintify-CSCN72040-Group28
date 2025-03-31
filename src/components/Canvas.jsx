@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState, useEffect } from "react";
+// import konva shapes
 import {
   Stage,
   Layer,
@@ -9,9 +10,11 @@ import {
   Arrow as KonvaArrow,
   Transformer,
 } from "react-konva";
+// import react colour
 import { SketchPicker } from "react-color";
 // for random id generation
 import { v4 as uuidv4 } from "uuid";
+// bootstrap icons
 import {
   ArrowsMove,
   ArrowUpLeft,
@@ -19,6 +22,13 @@ import {
   Circle,
   Pencil,
   Square,
+  Clipboard,
+  ClipboardCheck,
+  BoxArrowInDown,
+  BoxArrowUp,
+  Trash,
+  Arrow90degLeft,
+  Arrow90degRight
 } from "react-bootstrap-icons";
 
 // import memento design pattern files
@@ -33,8 +43,8 @@ import Paste from "../command/paste";
 import "./Canvas.scss";
 
 // height and width of canvas
-const WIDTH = 1000;
-const HEIGHT = 500;
+const WIDTH = 1400;
+const HEIGHT = 800;
 
 // all different draw actions
 const DrawAction = {
@@ -50,7 +60,7 @@ const PAINT_OPTIONS = [
   {
     id: DrawAction.Select,
     label: "Select Shapes",
-    icon: <ArrowUpLeftSquareFill />,
+    icon: <ArrowsMove />,
   },
   { id: DrawAction.Rectangle, label: "Draw Rectangle Shape", icon: <Square /> },
   { id: DrawAction.Circle, label: "Draw Circle Shape", icon: <Circle /> },
@@ -123,7 +133,7 @@ const Canvas = () => {
     }
   };
 
-  // redo for memento
+  // memento design pattern
   // press redo button
   const handleRedo = () => {
     if (redoStack.current.length > 0) {
@@ -293,60 +303,108 @@ const Canvas = () => {
   }, []);
 
   return (
-    <div style={{ margin: 16, width: WIDTH }}>
-      <div style={{ zIndex: 1, position: 'relative' }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div>
-            {PAINT_OPTIONS.map(({ id, label, icon }) => (
-              <button
-                key={id}
-                onClick={() => setDrawAction(id)}
-                style={{ marginRight: 4, padding: 4, backgroundColor: drawAction === id ? "#90ee90" : "#e0e0e0", border: "1px solid #ccc" }}
-                title={label}
-              >
-                {icon}
-              </button>
-            ))}
-            <button onClick={onClear} title="Clear">❌</button>
-          </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <input type="file" ref={fileRef} onChange={onImportImageSelect} style={{ display: "none" }} />
-            <button onClick={onImportImageClick}>📥 Import</button>
-            <button onClick={onExportClick}>📤 Export</button>
-          </div>
-          <div>
-            <button onClick={handleUndo}>↩️ Undo</button>
-            <button onClick={handleRedo}>↪️ Redo</button>
-          </div>
-          <div>
-            <button onClick={handleCopy}>Copy</button>
-            <button onClick={handlePaste}>Paste</button>
-          </div>
-        </div>
-        <div style={{ marginTop: 8 }}>
-          <SketchPicker color={color} onChangeComplete={(c) => setColor(c.hex)} />
-        </div>
+    <div className="canvas-layout">
+      {/* Toolbox and Shapes*/}
+      <div className="toolbox">
+        {PAINT_OPTIONS.map(({ id, icon, label }) => (
+          <button
+            key={id}
+            onClick={() => setDrawAction(id)}
+            className={drawAction === id ? "active" : ""}
+            title={label}
+          >
+            {icon}
+          </button>
+        ))}
       </div>
 
-      <div style={{ border: "1px solid black" }} className="canvas">
-        <Stage
-          width={WIDTH}
-          height={HEIGHT}
-          ref={stageRef}
-          onMouseDown={onStageMouseDown}
-          onMouseMove={onStageMouseMove}
-          onMouseUp={onStageMouseUp}
-        >
-          <Layer>
-            <KonvaRect x={0} y={0} width={WIDTH} height={HEIGHT} fill="white" id="bg" />
-            {image && <KonvaImage ref={diagramRef} image={image} x={0} y={0} width={WIDTH / 2} height={HEIGHT / 2} draggable={isDraggable} onClick={onShapeClick} />}
-            {rectangles.map((r) => <KonvaRect key={r.id} name="Rect" x={r.x} y={r.y} width={r.width} height={r.height} stroke={r.color} strokeWidth={4} draggable={isDraggable} onClick={onShapeClick} />)}
-            {circles.map((c) => <KonvaCircle key={c.id} name="Circle" x={c.x} y={c.y} radius={c.radius} stroke={c.color} strokeWidth={4} draggable={isDraggable} onClick={onShapeClick} />)}
-            {scribbles.map((s) => <KonvaLine key={s.id} name="Line" points={s.points} stroke={s.color} strokeWidth={4} lineCap="round" lineJoin="round" draggable={isDraggable} onClick={onShapeClick} />)}
-            {arrows.map((a) => <KonvaArrow key={a.id} name="Arrow" points={a.points} fill={a.color} stroke={a.color} strokeWidth={4} draggable={isDraggable} onClick={onShapeClick} />)}
-            <Transformer ref={transformerRef} />
-          </Layer>
-        </Stage>
+      {/* Canvas */}
+      <div className="canvas-area">
+        <div className="canvas">
+          <Stage
+            width={WIDTH}
+            height={HEIGHT}
+            ref={stageRef}
+            onMouseDown={onStageMouseDown}
+            onMouseMove={onStageMouseMove}
+            onMouseUp={onStageMouseUp}
+          >
+            <Layer>
+              <KonvaRect x={0} y={0} width={WIDTH} height={HEIGHT} fill="white" id="bg" />
+              {image && <KonvaImage ref={diagramRef} image={image} x={0} y={0} width={WIDTH / 2} height={HEIGHT / 2} draggable={isDraggable} onClick={onShapeClick} />}
+              {rectangles.map((r) => 
+                <KonvaRect
+                  key={r.id}
+                  name="Rect" x={r.x}
+                  y={r.y}
+                  width={r.width}
+                  height={r.height}
+                  stroke={r.color}
+                  strokeWidth={4}
+                  draggable={isDraggable}
+                  onClick={onShapeClick} />
+              )}
+              {circles.map((c) =>
+                <KonvaCircle
+                  key={c.id}
+                  name="Circle"
+                  x={c.x}
+                  y={c.y}
+                  radius={c.radius}
+                  stroke={c.color}
+                  strokeWidth={4}
+                  draggable={isDraggable}
+                  onClick={onShapeClick} />
+              )}
+              {scribbles.map((s) =>
+                <KonvaLine
+                  key={s.id}
+                  name="Line"
+                  points={s.points}
+                  stroke={s.color}
+                  strokeWidth={4}
+                  lineCap="round"
+                  lineJoin="round"
+                  draggable={isDraggable}
+                  onClick={onShapeClick} />
+              )}
+              {arrows.map((a) =>
+                <KonvaArrow key={a.id}
+                  name="Arrow"
+                  points={a.points}
+                  fill={a.color}
+                  stroke={a.color}
+                  strokeWidth={4}
+                  draggable={isDraggable}
+                  onClick={onShapeClick} />
+              )}
+              <Transformer ref={transformerRef} />
+            </Layer>
+          </Stage>
+        </div>
+      </div>
+  
+      {/* Copy/Paste and Undo/Redo */}
+      <div className="property-panel">
+        <div className="edit-controls">
+          <button onClick={handleUndo} title="Undo"><Arrow90degLeft /> Undo</button>
+          <button onClick={handleRedo} title="Redo"><Arrow90degRight /> Redo</button>
+          <button onClick={handleCopy} title="Copy"><Clipboard /> Copy</button>
+          <button onClick={handlePaste} title="Paste"><ClipboardCheck /> Paste</button>
+        </div>
+
+        {/* Import/Export/Clear */}
+        <div className="file-controls">
+          <input type="file" ref={fileRef} onChange={onImportImageSelect} style={{ display: "none" }} />
+          <button onClick={onImportImageClick} title="Import Image"><BoxArrowInDown /> Import</button>
+          <button onClick={onExportClick} title="Export Image"><BoxArrowUp /> Export</button>
+          <button onClick={onClear} title="Clear Canvas"><Trash /> Clear</button>
+        </div>
+
+          {/* Colour picker */}
+          <div className="color-picker">
+            <SketchPicker color={color} onChangeComplete={(c) => setColor(c.hex)} />
+          </div>
       </div>
     </div>
   );

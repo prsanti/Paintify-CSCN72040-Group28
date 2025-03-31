@@ -14,11 +14,12 @@ export default class Copy extends Command {
 
     let copiedShape = { ...this.selectedShape };
 
-    // generate a new ID
+    // generate a new ID for copied shape
     copiedShape.id = crypto.randomUUID();
 
-    // Normalize color for consistent rendering
+    // get colour for consistent rendering
     if (!copiedShape.color && copiedShape.stroke) {
+      // set colour to stroke
       copiedShape.color = copiedShape.stroke;
     }
 
