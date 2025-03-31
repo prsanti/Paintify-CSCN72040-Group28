@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState, useEffect } from "react";
 import {
   Stage,
   Layer,
@@ -10,6 +10,7 @@ import {
   Transformer,
 } from "react-konva";
 import { SketchPicker } from "react-color";
+// for random id generation
 import { v4 as uuidv4 } from "uuid";
 import {
   ArrowsMove,
@@ -20,12 +21,18 @@ import {
   Square,
 } from "react-bootstrap-icons";
 
+// import memento design pattern files
+import Caretaker from "../memento/caretaker";
+import Originator from "../memento/originator";
+
+// css
 import "./Canvas.scss";
 
-// ----- ENUMS & CONSTANTS -----
+// height and width of canvas
 const WIDTH = 1000;
 const HEIGHT = 500;
 
+// all different draw actions
 const DrawAction = {
   Select: "select",
   Rectangle: "rectangle",
@@ -34,6 +41,7 @@ const DrawAction = {
   Arrow: "arrow",
 };
 
+// select button icons and options
 const PAINT_OPTIONS = [
   {
     id: DrawAction.Select,
@@ -41,12 +49,12 @@ const PAINT_OPTIONS = [
     icon: <ArrowUpLeftSquareFill />,
   },
   { id: DrawAction.Rectangle, label: "Draw Rectangle Shape", icon: <Square /> },
-  { id: DrawAction.Circle, label: "Draw Cirle Shape", icon: <Circle /> },
+  { id: DrawAction.Circle, label: "Draw Circle Shape", icon: <Circle /> },
   { id: DrawAction.Arrow, label: "Draw Arrow Shape", icon: <ArrowUpLeft /> },
   { id: DrawAction.Scribble, label: "Scribble", icon: <Pencil /> },
 ];
 
-// ----- UTILS -----
+// download image
 const downloadURI = (uri, name) => {
   const link = document.createElement("a");
   link.download = name;
@@ -56,8 +64,8 @@ const downloadURI = (uri, name) => {
   document.body.removeChild(link);
 };
 
-// ----- MAIN COMPONENT -----
 const Canvas = () => {
+  // refs
   const currentShapeRef = useRef();
   const isPaintRef = useRef(false);
   const stageRef = useRef(null);
@@ -65,6 +73,7 @@ const Canvas = () => {
   const diagramRef = useRef(null);
   const fileRef = useRef(null);
 
+  // states
   const [scribbles, setScribbles] = useState([]);
   const [rectangles, setRectangles] = useState([]);
   const [circles, setCircles] = useState([]);
@@ -73,8 +82,54 @@ const Canvas = () => {
   const [color, setColor] = useState("#000");
   const [drawAction, setDrawAction] = useState(DrawAction.Scribble);
 
+  // memento objects
+  const originator = useRef(new Originator());
+  const caretaker = useRef(new Caretaker(originator.current));
+  const redoStack = useRef([]);
+
+  // if items are dragagble
   const isDraggable = drawAction === DrawAction.Select;
 
+  // get states
+  const getCanvasState = () => ({
+    rectangles,
+    circles,
+    scribbles,
+    arrows,
+    image,
+  });
+
+  const setCanvasState = (state) => {
+    setRectangles(state.rectangles || []);
+    setCircles(state.circles || []);
+    setScribbles(state.scribbles || []);
+    setArrows(state.arrows || []);
+    setImage(state.image);
+  };
+
+  const handleUndo = () => {
+    const prevState = caretaker.current.undo();
+    if (prevState !== undefined && prevState !== null) {
+      redoStack.current.push(getCanvasState());
+      setCanvasState(prevState);
+    }
+  };
+
+  // redo for memento
+  const handleRedo = () => {
+    if (redoStack.current.length > 0) {
+      // remove the top stack of memento
+      const nextState = redoStack.current.pop();
+      // get next state
+      originator.current.setState(nextState);
+      // create a backup for current state
+      caretaker.current.backup();
+      // set canvas to memento
+      setCanvasState(nextState);
+    }
+  };
+
+  // deselect button
   const checkDeselect = useCallback((e) => {
     const clickedOnEmpty = e.target === stageRef?.current?.find("#bg")?.[0];
     if (clickedOnEmpty) {
@@ -82,10 +137,17 @@ const Canvas = () => {
     }
   }, []);
 
+  // mouse on the canvas
   const onStageMouseDown = useCallback((e) => {
     checkDeselect(e);
     if (drawAction === DrawAction.Select) return;
 
+    // backup state BEFORE modifying anything
+    originator.current.setState(getCanvasState());
+    caretaker.current.backup();
+    redoStack.current = [];
+
+    // position of shape
     isPaintRef.current = true;
     const stage = stageRef?.current;
     const pos = stage?.getPointerPosition();
@@ -94,6 +156,7 @@ const Canvas = () => {
     const id = uuidv4();
     currentShapeRef.current = id;
 
+    // perform action depending on tool selected
     switch (drawAction) {
       case DrawAction.Scribble:
         setScribbles((prev) => [...prev, { id, points: [x, y], color }]);
@@ -116,12 +179,14 @@ const Canvas = () => {
   const onStageMouseMove = useCallback(() => {
     if (drawAction === DrawAction.Select || !isPaintRef.current) return;
 
+    // get location when mouse up
     const stage = stageRef?.current;
     const id = currentShapeRef.current;
     const pos = stage?.getPointerPosition();
     const x = pos?.x || 0;
     const y = pos?.y || 0;
 
+    // draw actions depending on tool selected
     switch (drawAction) {
       case DrawAction.Scribble:
         setScribbles((prev) =>
@@ -161,6 +226,7 @@ const Canvas = () => {
     }
   }, [drawAction]);
 
+  // on mouse up
   const onStageMouseUp = useCallback(() => {
     isPaintRef.current = false;
   }, []);
@@ -173,6 +239,7 @@ const Canvas = () => {
     [drawAction]
   );
 
+  // import images
   const onImportImageSelect = useCallback((e) => {
     if (e.target.files?.[0]) {
       const imageURL = URL.createObjectURL(e.target.files[0]);
@@ -187,11 +254,13 @@ const Canvas = () => {
     fileRef?.current?.click();
   };
 
+  // export images
   const onExportClick = () => {
     const dataURL = stageRef?.current?.toDataURL({ pixelRatio: 3 });
     downloadURI(dataURL, "image.png");
   };
 
+  // clear canvas
   const onClear = () => {
     setScribbles([]);
     setCircles([]);
@@ -200,9 +269,14 @@ const Canvas = () => {
     setImage(undefined);
   };
 
+  // create memento state on init
+  useEffect(() => {
+    originator.current.setState(getCanvasState());
+    caretaker.current.backup();
+  }, []);
+
   return (
     <div style={{ margin: 16, width: WIDTH }}>
-      {/* Toolbar */}
       <div style={{ zIndex: 1, position: 'relative' }}>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <div>
@@ -233,15 +307,17 @@ const Canvas = () => {
             <button onClick={onImportImageClick}>📥 Import</button>
             <button onClick={onExportClick}>📤 Export</button>
           </div>
+          <div>
+            <button onClick={handleUndo}>↩️ Undo</button>
+            <button onClick={handleRedo}>↪️ Redo</button>
+          </div>
         </div>
         <div style={{ marginTop: 8 }}>
           <SketchPicker color={color} onChangeComplete={(c) => setColor(c.hex)} />
         </div>
-        <button onClick={() => alert('Hello!')}>Test Click</button>
       </div>
-  
-      {/* Canvas */}
-      <div style={{border: "1px solid black"}} className="canvas">
+
+      <div style={{ border: "1px solid black" }} className="canvas">
         <Stage
           width={WIDTH}
           height={HEIGHT}
@@ -318,7 +394,6 @@ const Canvas = () => {
       </div>
     </div>
   );
-  
 };
 
 export default Canvas;
