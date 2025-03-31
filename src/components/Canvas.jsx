@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState, useEffect } from "react";
 import {
   Stage,
   Layer,
@@ -20,18 +20,14 @@ import {
   Square,
 } from "react-bootstrap-icons";
 
-// memento design pattern import
 import Caretaker from "../memento/caretaker";
 import Originator from "../memento/originator";
 
-// css
 import "./Canvas.scss";
 
-// ----- ENUMS & CONSTANTS -----
 const WIDTH = 1000;
 const HEIGHT = 500;
 
-// actions
 const DrawAction = {
   Select: "select",
   Rectangle: "rectangle",
@@ -40,7 +36,6 @@ const DrawAction = {
   Arrow: "arrow",
 };
 
-// different options for canvas
 const PAINT_OPTIONS = [
   {
     id: DrawAction.Select,
@@ -48,12 +43,11 @@ const PAINT_OPTIONS = [
     icon: <ArrowUpLeftSquareFill />,
   },
   { id: DrawAction.Rectangle, label: "Draw Rectangle Shape", icon: <Square /> },
-  { id: DrawAction.Circle, label: "Draw Cirle Shape", icon: <Circle /> },
+  { id: DrawAction.Circle, label: "Draw Circle Shape", icon: <Circle /> },
   { id: DrawAction.Arrow, label: "Draw Arrow Shape", icon: <ArrowUpLeft /> },
   { id: DrawAction.Scribble, label: "Scribble", icon: <Pencil /> },
 ];
 
-// download image function
 const downloadURI = (uri, name) => {
   const link = document.createElement("a");
   link.download = name;
@@ -63,7 +57,6 @@ const downloadURI = (uri, name) => {
   document.body.removeChild(link);
 };
 
-// main component
 const Canvas = () => {
   const currentShapeRef = useRef();
   const isPaintRef = useRef(false);
@@ -72,7 +65,6 @@ const Canvas = () => {
   const diagramRef = useRef(null);
   const fileRef = useRef(null);
 
-  // states for shapes and tools
   const [scribbles, setScribbles] = useState([]);
   const [rectangles, setRectangles] = useState([]);
   const [circles, setCircles] = useState([]);
@@ -81,9 +73,45 @@ const Canvas = () => {
   const [color, setColor] = useState("#000");
   const [drawAction, setDrawAction] = useState(DrawAction.Scribble);
 
+  const originator = useRef(new Originator());
+  const caretaker = useRef(new Caretaker(originator.current));
+  const redoStack = useRef([]);
+
   const isDraggable = drawAction === DrawAction.Select;
 
-  // check if deselect is selected
+  const getCanvasState = () => ({
+    rectangles,
+    circles,
+    scribbles,
+    arrows,
+    image,
+  });
+
+  const setCanvasState = (state) => {
+    setRectangles(state.rectangles || []);
+    setCircles(state.circles || []);
+    setScribbles(state.scribbles || []);
+    setArrows(state.arrows || []);
+    setImage(state.image);
+  };
+
+  const handleUndo = () => {
+    const prevState = caretaker.current.undo();
+    if (prevState !== undefined && prevState !== null) {
+      redoStack.current.push(getCanvasState());
+      setCanvasState(prevState);
+    }
+  };
+
+  const handleRedo = () => {
+    if (redoStack.current.length > 0) {
+      const nextState = redoStack.current.pop();
+      originator.current.setState(nextState);
+      caretaker.current.backup();
+      setCanvasState(nextState);
+    }
+  };
+
   const checkDeselect = useCallback((e) => {
     const clickedOnEmpty = e.target === stageRef?.current?.find("#bg")?.[0];
     if (clickedOnEmpty) {
@@ -91,10 +119,14 @@ const Canvas = () => {
     }
   }, []);
 
-  // check if mouse is pressed on canvas
   const onStageMouseDown = useCallback((e) => {
     checkDeselect(e);
     if (drawAction === DrawAction.Select) return;
+
+    // backup state BEFORE modifying anything
+    originator.current.setState(getCanvasState());
+    caretaker.current.backup();
+    redoStack.current = [];
 
     isPaintRef.current = true;
     const stage = stageRef?.current;
@@ -104,7 +136,6 @@ const Canvas = () => {
     const id = uuidv4();
     currentShapeRef.current = id;
 
-    // perform type of tool depending on what is selected
     switch (drawAction) {
       case DrawAction.Scribble:
         setScribbles((prev) => [...prev, { id, points: [x, y], color }]);
@@ -124,18 +155,15 @@ const Canvas = () => {
     }
   }, [checkDeselect, drawAction, color]);
 
-  // for mouse movement
   const onStageMouseMove = useCallback(() => {
     if (drawAction === DrawAction.Select || !isPaintRef.current) return;
 
-    // get location, id and position of mouse on canvas
     const stage = stageRef?.current;
     const id = currentShapeRef.current;
     const pos = stage?.getPointerPosition();
     const x = pos?.x || 0;
     const y = pos?.y || 0;
 
-    // type of action
     switch (drawAction) {
       case DrawAction.Scribble:
         setScribbles((prev) =>
@@ -175,12 +203,11 @@ const Canvas = () => {
     }
   }, [drawAction]);
 
-  // mouse up/release
   const onStageMouseUp = useCallback(() => {
     isPaintRef.current = false;
+    // 🔥 No backup here anymore!
   }, []);
 
-  // click on shape
   const onShapeClick = useCallback(
     (e) => {
       if (drawAction !== DrawAction.Select) return;
@@ -216,9 +243,13 @@ const Canvas = () => {
     setImage(undefined);
   };
 
+  useEffect(() => {
+    originator.current.setState(getCanvasState());
+    caretaker.current.backup();
+  }, []);
+
   return (
     <div style={{ margin: 16, width: WIDTH }}>
-      {/* Toolbar */}
       <div style={{ zIndex: 1, position: 'relative' }}>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <div>
@@ -249,14 +280,17 @@ const Canvas = () => {
             <button onClick={onImportImageClick}>📥 Import</button>
             <button onClick={onExportClick}>📤 Export</button>
           </div>
+          <div>
+            <button onClick={handleUndo}>↩️ Undo</button>
+            <button onClick={handleRedo}>↪️ Redo</button>
+          </div>
         </div>
         <div style={{ marginTop: 8 }}>
           <SketchPicker color={color} onChangeComplete={(c) => setColor(c.hex)} />
         </div>
       </div>
-  
-      {/* Canvas */}
-      <div style={{border: "1px solid black"}} className="canvas">
+
+      <div style={{ border: "1px solid black" }} className="canvas">
         <Stage
           width={WIDTH}
           height={HEIGHT}
@@ -333,7 +367,6 @@ const Canvas = () => {
       </div>
     </div>
   );
-  
 };
 
 export default Canvas;
