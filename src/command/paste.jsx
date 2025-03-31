@@ -3,18 +3,25 @@ import Command from "./command";
 
 export default class Paste extends Command {
   constructor(clipboard, addShape) {
-    // init command
+    // init command object
     super();
     this.clipboard = clipboard;
     this.addShape = addShape;
   }
 
   execute() {
-    if (this.clipboard) {
-      // get copied shape
-      const pastedShape = { ...this.clipboard, id: crypto.randomUUID(), x: this.clipboard.x + 10, y: this.clipboard.y + 10 };
-      // set state of clip board to copied shape
-      this.addShape(pastedShape);
-    }
+    if (!this.clipboard) return;
+
+    // get copied shape
+    const shape = {
+      ...this.clipboard,
+      id: crypto.randomUUID(),
+      // // move copied shape by (20,20)
+      x: this.clipboard.x + 20,
+      y: this.clipboard.y + 20,
+    };
+
+    // set state of clip board to copied shape
+    this.addShape(shape);
   }
 }
